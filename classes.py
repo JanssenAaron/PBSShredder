@@ -44,6 +44,7 @@ class sql_job:
         self.job_id = id
         self.job_name = job_obj.get_data("jobname")
         self.queue_name = job_obj.get_data("queue")
+        self.user_name = job_obj.get_data("user")
         self.group_name = job_obj.get_data("group")
         self.pi_name = job_obj.get_data("group")
         self.start_time = job_obj.get_data("start")
@@ -66,6 +67,7 @@ class sql_job:
                 job_id = self.job_id,
                 job_name = self.job_name,
                 queue_name = self.queue_name,
+                user_name = self.user_name,
                 group_name = self.group_name,
                 pi_name = self.pi_name,
                 start_time = self.start_time,

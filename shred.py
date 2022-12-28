@@ -97,77 +97,6 @@ def _get_job_from_record(id, fields):
 
     return Job(id, output)
 
-# Each parser method takes a string formatted in a specific way from the 
-# PBSPro dcgm intergration and changes it to a normal value ( int, float, etc)
-
-# \d+MHZ
-def _clock_speed_parser(string):
-    return _strip_n_from_values(string, 3)
-
-# \d+\.\d+GB
-# The intergration may use other units for memory
-# Converting values may be required
-def _mem_used_parser(string):
-    return _strip_n_from_values(string, 2)
-
-# \d+\.\d+W
-def _energy_used_parser(string):
-    return _strip_n_from_values(string, 1)
-
-# \d+\.\d+(mins | secs | hrs)
-def _gpu_duration_parser(string):
-
-    output = _strip_n_from_values(string, 3)
-    for key, value in output.items():
-        if value.endswith("s"):
-            output[key] = float(value[0:-1])/60/60
-        if value.endswith("m"):
-            output[key] = float(value[0:-1])/60 
-    return(output)
-        
-# \d+\.\d+%
-def _util_parser(string):
-    return _strip_n_from_values(string, 1)
-
-# Removes n chars from the end of the key-value pair's value
-def _strip_n_from_values(string, n):
-    output = {}
-    data = _parse_gpu_per_node_stat(string)
-
-    for key, value in data.items():
-        output[key] = value[0:-n]
-    return output
-
-# dcgm intergration stats ending in _per_node_gpu have the format : "nodename:(gpuname:value+gpuname2:value2)+nodename2(gpuname:value3)"
-# This splits that string into a dictonary
-# of {nodename:gpuname = value, nodename:gpuname2=value2, nodename2:gpuname=value3}
-def _parse_gpu_per_node_stat(string):
-
-    output = {}
-    #Splits the string by each of the nodes
-    nodes = string.split(")+")
-    
-    # Deals with an extra ")" on the strings
-    for i, node in enumerate(nodes):
-        node = node.strip()
-        if node.endswith(")"):
-            node = node[0:-1]
-        nodes[i] = node
-
-
-    for node in nodes:
-        node_name, gpus= node.split(":(")
-
-        for gpu in gpus.split("+"):
-            gpu_num, gpu_stat = gpu.split(":")
-
-            id_of_gpu = node_name+":"+gpu_num
-
-            output[id_of_gpu] = gpu_stat
-    
-    return output
-
-
 #Gets Job objs from filename
 def _get_jobs_from_file(filename):
     jobs = []
@@ -180,23 +109,6 @@ def _get_jobs_from_file(filename):
 
             jobs.append(job)
     return jobs
-
-# Takes a parser key value pair and a dictionary
-# The dictionary in the from
-# { 
-#   nodename:gpunum={key:value,key2:value2},
-#   nodename:gpunum2={key:value3}
-# }
-# and adds the key and ( parsed ) value to the sub dictionary
-
-def _sub_dict_parse(usage_dict, key, value, parser):
-    for usageid, stat in parser(value).items():
-
-        if usageid not in usage_dict.keys():
-            usage_dict[usageid] = {}
-
-        usage_dict[usageid][key] = stat
-    return usage_dict
 
 # User available code starting here
 # IE if you want to use this code in a different way
@@ -227,6 +139,7 @@ if __name__ == "__main__":
         real_jobs.append(sql_job(job.get_id(), job).export_to_alchemy())
 
     prod = True
+    print(len(jobs))
     if prod:
     # Connects to mysql db
         engine = create_engine(connection_string)
@@ -250,3 +163,4 @@ if __name__ == "__main__":
                 session.merge(job)
 
             session.commit()
+        print("done")
